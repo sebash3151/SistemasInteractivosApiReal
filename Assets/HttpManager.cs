@@ -12,13 +12,33 @@ public class HttpManager : MonoBehaviour
     private string URL;
 
     [Header("MenuRegistro")]
+    [SerializeField] bool home = false;
     [SerializeField] InputField userfield;
     [SerializeField] InputField passfield;
 
     [Header("Textos")]
     [SerializeField] Text[] textos;
+    [SerializeField] GameObject[] letreros;
     int contador = 0;
     private int usuarios = 0;
+
+    private string Token;
+    private string Usernamename;
+    private string SuperScore;
+
+    private void Start()
+    {
+        if(home == true)
+        {
+            Token = PlayerPrefs.GetString("token");
+            Usernamename = PlayerPrefs.GetString("username");
+            SuperScore = PlayerPrefs.GetString("highScore");
+            Debug.Log("Token: " + Token);
+
+            StartCoroutine(GetPerfil());
+        }
+
+    }
 
     public void ClickGetScores()
     {
@@ -31,7 +51,7 @@ public class HttpManager : MonoBehaviour
 
         data.username = userfield.text;
         data.password = passfield.text;
-
+        Verificacion();
         string postData = JsonUtility.ToJson(data); 
 
         StartCoroutine(Registro(postData));
@@ -43,16 +63,35 @@ public class HttpManager : MonoBehaviour
 
         data.username = userfield.text;
         data.password = passfield.text;
-
+        Verificacion();
         string postData = JsonUtility.ToJson(data);
 
         StartCoroutine(Ingreso(postData));
     }
 
+    public void SendScore()
+    {
+        Token = PlayerPrefs.GetString("token");
+
+        DataUser data = new DataUser();
+
+        data.username = PlayerPrefs.GetString("username");
+        data.score = PlayerPrefs.GetInt("highScore");
+             
+
+        string postData = JsonUtility.ToJson(data);
+
+        StartCoroutine(PatchScore(postData));
+    }
+
     IEnumerator GetScores()
     {
-        string url = URL + "/scores";
+        string url = URL + "/usuarios" + "?limit=5&sort=true";
         UnityWebRequest www = UnityWebRequest.Get(url);
+        www.method = "GET";
+
+        www.SetRequestHeader("content-type", "application/json");
+        www.SetRequestHeader("x-token", Token);
 
         yield return www.SendWebRequest();
 
@@ -65,33 +104,20 @@ public class HttpManager : MonoBehaviour
             //Debug.Log(www.downloadHandler.text);
             Scores resData = JsonUtility.FromJson<Scores>(www.downloadHandler.text);
 
-            foreach (ScoreData score in resData.data)
+            for (int i = 0; i < 6; i++)
             {
-                usuarios++;
-            }
-
-            for (int i = 0; i <= usuarios; i++)
-            {
-                for (int j = 0; j < usuarios- 1 ; j++)
-                {
-                    if (resData.data[j].value < resData.data[j + 1].value)
-                    {
-                        var temp = resData.data[j];
-                        resData.data[j] = resData.data[j + 1];
-                        resData.data[j + 1] = temp;
-                    }
-                    
-                    
-                }
-            }
-
-            foreach (ScoreData s in resData.data)
-            {
-                textos[contador].text = s.username + " : " + s.value;
+                DataUser s = resData.data[contador];
+                textos[contador].text = s.username + " : " + s.score;
                 contador++;
+            }
+
+            //foreach (DataUser s in resData.data)
+           // {
+             //   textos[contador].text = s.username + " : " + s.score;
+                
                 //Debug.Log(s.user_id + " | " + s.value);
                 //Debug.Log(usuarios);
-            }
+            //}
         }
         else
         {
@@ -101,9 +127,8 @@ public class HttpManager : MonoBehaviour
 
     IEnumerator Registro(string postData)
     {
-
-        Debug.Log(postData);
-        
+        Debug.Log("Registro: " + postData);
+       
         string url = URL + "/api/usuarios";
         UnityWebRequest www = UnityWebRequest.Put(url, postData);
         www.method = "POST";
@@ -121,26 +146,23 @@ public class HttpManager : MonoBehaviour
             //Debug.Log(www.downloadHandler.text);
             DataApi resData = JsonUtility.FromJson<DataApi>(www.downloadHandler.text);
 
-            //resData.usuario.username;
-
-            Debug.Log("Bienvenido " + resData.usuario.username + ", id: " + resData.usuario._id);
+            Debug.Log("Registrado " + resData.usuario.username + ", id: " + resData.usuario._id);
 
             StartCoroutine(Ingreso(postData));
-            PlayerPrefs.SetString("token", resData.token);
-            PlayGame();
+            letreros[0].SetActive(true);
         }
         else
         {
             Debug.Log(www.error);
+            ErrorBox();
         }
     }
 
     IEnumerator Ingreso(string postData)
     {
+        Debug.Log("Ingreso: " + postData);
 
-        Debug.Log(postData);
-
-        string url = URL + "/api/usuarios";
+        string url = URL + "/api/auth/login";
         UnityWebRequest www = UnityWebRequest.Put(url, postData);
         www.method = "POST";
         www.SetRequestHeader("content-type", "application/json");
@@ -157,21 +179,105 @@ public class HttpManager : MonoBehaviour
             //Debug.Log(www.downloadHandler.text);
             DataApi resData = JsonUtility.FromJson<DataApi>(www.downloadHandler.text);
 
-            //resData.usuario.username;
-
-            Debug.Log("Bienvenido " + resData.usuario.username + ", id: " + resData.usuario._id);
+            Debug.Log("Autenticado " + resData.usuario.username + ", id: " + resData.usuario._id + " y score: " + resData.usuario.score);
+            Debug.Log("Token:" + resData.token);
+            Debug.Log("ActualScore: " + resData.usuario.score);
             PlayerPrefs.SetString("token", resData.token);
+            PlayerPrefs.SetString("username", resData.usuario.username);
+            PlayerPrefs.SetInt("highScore", resData.usuario.score);
+            letreros[1].SetActive(true);
+        }
+        else
+        {
+            Debug.Log(www.error);
+            ErrorBox();
+        }
+    }
+
+    IEnumerator GetPerfil()
+    {
+        string url = URL + "/api/usuarios/"+Usernamename;
+        UnityWebRequest www = UnityWebRequest.Get(url);
+        www.SetRequestHeader("x-token", Token);
+
+        yield return www.SendWebRequest();
+
+        if (www.isNetworkError)
+        {
+            Debug.Log("NETWORK ERROR " + www.error);
+        }
+        else if (www.responseCode == 200)
+        {
+            //Debug.Log(www.downloadHandler.text);
+            DataApi resData = JsonUtility.FromJson<DataApi>(www.downloadHandler.text);
+            PlayerPrefs.SetInt("highScore", resData.usuario.score);
+            Debug.Log("Token valido " + resData.usuario.username + ", id: " + resData.usuario._id + " y score: " + resData.usuario.score);
             PlayGame();
         }
         else
         {
             Debug.Log(www.error);
+            ErrorBox();
+        }
+    }
+
+    IEnumerator PatchScore(string postData)
+    {
+        Debug.Log("Patch scorre: ");
+
+        string url = URL + "/api/usuarios/";
+        UnityWebRequest www = UnityWebRequest.Put(url, postData);
+        www.method = "PATCH";
+        www.SetRequestHeader("content-type", "application/json");
+        www.SetRequestHeader("x-token", Token);
+
+        yield return www.SendWebRequest();
+
+        if (www.isNetworkError)
+        {
+            Debug.Log("NETWORK ERROR " + www.error);
+        }
+        else if (www.responseCode == 200)
+        {
+            //Debug.Log(www.downloadHandler.text);
+            DataApi resData = JsonUtility.FromJson<DataApi>(www.downloadHandler.text);
+
+            Debug.Log("Score Actualziado " + resData.usuario.username + ", score: " + resData.usuario.score);
+            letreros[3].SetActive(true);
+            
+        }
+        else
+        {
+            Debug.Log(www.error);
+            ErrorBox();
+        }
+    }
+
+
+    public void Verificacion()
+    {
+        if(userfield.text == null || passfield == null)
+        {
+            ErrorBox();
         }
     }
 
     public void PlayGame()
     {
         SceneManager.LoadScene("Principal");
+    }
+
+    public void ErrorBox()
+    {
+        if (letreros[2] == null)
+        {
+            
+        }
+        else
+        {
+            letreros[2].SetActive(true);
+        }
+
     }
 
     public void Reseteo()
@@ -195,7 +301,7 @@ public class ScoreData
 [System.Serializable]
 public class Scores
 {
-    public ScoreData[] data;
+    public DataUser[] data;
 }
 
 [System.Serializable]
