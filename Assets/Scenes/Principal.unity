@@ -1254,7 +1254,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 1783768457}
+      - m_Target: {fileID: 1499708459}
         m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
         m_MethodName: SetActive
         m_Mode: 6
@@ -1815,7 +1815,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1499708460
 Transform:
   m_ObjectHideFlags: 0
@@ -1897,13 +1897,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   URL: https://my-json-server.typicode.com/sebash3151/FakeApi
+  userfield: {fileID: 0}
+  passfield: {fileID: 0}
   textos:
   - {fileID: 749784685}
   - {fileID: 674110518}
   - {fileID: 1598552287}
   - {fileID: 707962643}
   - {fileID: 441000985}
-  contador: 0
 --- !u!1 &1598552285
 GameObject:
   m_ObjectHideFlags: 0
@@ -2076,7 +2077,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1783768458
 MonoBehaviour:
   m_ObjectHideFlags: 0

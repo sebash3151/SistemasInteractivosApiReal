@@ -3,26 +3,50 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class HttpManager : MonoBehaviour
 {
 
     [SerializeField]
     private string URL;
-    // Start is called before the first frame update
 
+    [Header("MenuRegistro")]
+    [SerializeField] InputField userfield;
+    [SerializeField] InputField passfield;
+
+    [Header("Textos")]
     [SerializeField] Text[] textos;
     int contador = 0;
     private int usuarios = 0;
 
-    void Start()
-    {
-
-    }
-
     public void ClickGetScores()
     {
         StartCoroutine(GetScores());
+    }
+
+    public void ClickRegistro()
+    {
+        DataApi data = new DataApi();
+
+        data.username = userfield.text;
+        data.password = passfield.text;
+
+        string postData = JsonUtility.ToJson(data); 
+
+        StartCoroutine(Registro(postData));
+    }
+
+    public void ClickIngreso()
+    {
+        DataApi data = new DataApi();
+
+        data.username = userfield.text;
+        data.password = passfield.text;
+
+        string postData = JsonUtility.ToJson(data);
+
+        StartCoroutine(Ingreso(postData));
     }
 
     IEnumerator GetScores()
@@ -75,6 +99,81 @@ public class HttpManager : MonoBehaviour
         }
     }
 
+    IEnumerator Registro(string postData)
+    {
+
+        Debug.Log(postData);
+        
+        string url = URL + "/api/usuarios";
+        UnityWebRequest www = UnityWebRequest.Put(url, postData);
+        www.method = "POST";
+        www.SetRequestHeader("content-type", "application/json");
+
+
+        yield return www.SendWebRequest();
+
+        if (www.isNetworkError)
+        {
+            Debug.Log("NETWORK ERROR " + www.error);
+        }
+        else if (www.responseCode == 200)
+        {
+            //Debug.Log(www.downloadHandler.text);
+            DataApi resData = JsonUtility.FromJson<DataApi>(www.downloadHandler.text);
+
+            //resData.usuario.username;
+
+            Debug.Log("Bienvenido " + resData.usuario.username + ", id: " + resData.usuario._id);
+
+            StartCoroutine(Ingreso(postData));
+            PlayerPrefs.SetString("token", resData.token);
+            PlayGame();
+        }
+        else
+        {
+            Debug.Log(www.error);
+        }
+    }
+
+    IEnumerator Ingreso(string postData)
+    {
+
+        Debug.Log(postData);
+
+        string url = URL + "/api/usuarios";
+        UnityWebRequest www = UnityWebRequest.Put(url, postData);
+        www.method = "POST";
+        www.SetRequestHeader("content-type", "application/json");
+
+
+        yield return www.SendWebRequest();
+
+        if (www.isNetworkError)
+        {
+            Debug.Log("NETWORK ERROR " + www.error);
+        }
+        else if (www.responseCode == 200)
+        {
+            //Debug.Log(www.downloadHandler.text);
+            DataApi resData = JsonUtility.FromJson<DataApi>(www.downloadHandler.text);
+
+            //resData.usuario.username;
+
+            Debug.Log("Bienvenido " + resData.usuario.username + ", id: " + resData.usuario._id);
+            PlayerPrefs.SetString("token", resData.token);
+            PlayGame();
+        }
+        else
+        {
+            Debug.Log(www.error);
+        }
+    }
+
+    public void PlayGame()
+    {
+        SceneManager.LoadScene("Principal");
+    }
+
     public void Reseteo()
     {
         contador = 0;
@@ -97,4 +196,22 @@ public class ScoreData
 public class Scores
 {
     public ScoreData[] data;
+}
+
+[System.Serializable]
+public class DataApi
+{
+    public string username;
+    public string password;
+    public DataUser usuario;
+    public string token;
+}
+
+[System.Serializable]
+public class DataUser
+{
+    public string _id;
+    public string username;
+    public bool estado;
+    public int score;
 }
