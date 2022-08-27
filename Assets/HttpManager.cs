@@ -86,10 +86,11 @@ public class HttpManager : MonoBehaviour
 
     IEnumerator GetScores()
     {
-        string url = URL + "/usuarios" + "?limit=5&sort=true";
+        string url = URL + "/api/usuarios" + "?limit=5&sort=true";
         UnityWebRequest www = UnityWebRequest.Get(url);
         www.method = "GET";
-
+        Token = PlayerPrefs.GetString("token");
+        Debug.Log(Token);
         www.SetRequestHeader("content-type", "application/json");
         www.SetRequestHeader("x-token", Token);
 
@@ -106,18 +107,11 @@ public class HttpManager : MonoBehaviour
 
             for (int i = 0; i < 6; i++)
             {
-                DataUser s = resData.data[contador];
-                textos[contador].text = s.username + " : " + s.score;
-                contador++;
+                Debug.Log(resData.usuarios[i].username + " , " + resData.usuarios[i].score);
+                textos[i].text = resData.usuarios[i].username + " : " + resData.usuarios[i].score;
             }
 
-            //foreach (DataUser s in resData.data)
-           // {
-             //   textos[contador].text = s.username + " : " + s.score;
-                
-                //Debug.Log(s.user_id + " | " + s.value);
-                //Debug.Log(usuarios);
-            //}
+            
         }
         else
         {
@@ -301,7 +295,7 @@ public class ScoreData
 [System.Serializable]
 public class Scores
 {
-    public DataUser[] data;
+    public DataUser[] usuarios;
 }
 
 [System.Serializable]
